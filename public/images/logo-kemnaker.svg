@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="kemnakerBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#002b80" />
+      <stop offset="100%" stop-color="#0047cc" />
+    </linearGradient>
+    <linearGradient id="kemnakerGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FBBF24" />
+    </linearGradient>
+    <linearGradient id="kemnakerCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Outer Ring Base -->
+  <circle cx="100" cy="100" r="92" fill="#ffffff" filter="url(#dropShadow)" />
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#003399" stroke-width="3" stroke-dasharray="4 2" opacity="0.4" />
+
+  <!-- 9-Cog Wheel Stilasi Kemnaker -->
+  <g id="petals" transform="translate(100, 100)">
+    <!-- Petal 1 (0 deg - Top) -->
+    <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+    <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerBlue)" />
+
+    <!-- Petal 2 (40 deg) -->
+    <g transform="rotate(40)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerCyan)" />
+    </g>
+
+    <!-- Petal 3 (80 deg) -->
+    <g transform="rotate(80)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerBlue)" />
+    </g>
+
+    <!-- Petal 4 (120 deg) -->
+    <g transform="rotate(120)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerGold)" />
+    </g>
+
+    <!-- Petal 5 (160 deg) -->
+    <g transform="rotate(160)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerBlue)" />
+    </g>
+
+    <!-- Petal 6 (200 deg) -->
+    <g transform="rotate(200)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerCyan)" />
+    </g>
+
+    <!-- Petal 7 (240 deg) -->
+    <g transform="rotate(240)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerBlue)" />
+    </g>
+
+    <!-- Petal 8 (280 deg) -->
+    <g transform="rotate(280)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerGold)" />
+    </g>
+
+    <!-- Petal 9 (320 deg) -->
+    <g transform="rotate(320)">
+      <path d="M-8,-82 L8,-82 L12,-62 C6,-60 -6,-60 -12,-62 Z" fill="#003399" />
+      <path d="M-10,-60 C-4,-48 4,-48 10,-60 L14,-78 L-14,-78 Z" fill="url(#kemnakerBlue)" />
+    </g>
+  </g>
+
+  <!-- Central Circular Hub -->
+  <circle cx="100" cy="100" r="48" fill="#ffffff" stroke="#003399" stroke-width="4" />
+  <circle cx="100" cy="100" r="38" fill="url(#kemnakerBlue)" />
+  
+  <!-- Stylized Figure / Sinergi Vokasi in Center -->
+  <circle cx="100" cy="85" r="9" fill="#FBBF24" />
+  <path d="M84,115 C84,98 116,98 116,115 C116,120 84,120 84,115 Z" fill="#ffffff" />
+  <path d="M92,107 L108,107 L105,123 L95,123 Z" fill="#FBBF24" />
+</svg>
