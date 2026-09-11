@@ -278,7 +278,7 @@ function SatelliteContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* SIMPEG BPVP (Client App) */}
                   <a
-                    href={`${process.env.NEXT_PUBLIC_SIMPEG_URL || (process.env.NODE_ENV === "production" ? "https://simpegbpvp.vercel.app" : "http://localhost:3000")}/api/auth/sso/callback?sso_token=${encodeURIComponent(ssoToken)}`}
+                    href={`${process.env.NEXT_PUBLIC_SIMPEG_URL || "https://simpegbpvp.vercel.app"}/api/auth/sso/callback?sso_token=${encodeURIComponent(ssoToken)}`}
                     className="p-3.5 rounded-xl border border-slate-200 hover:border-[#003399] hover:bg-blue-50/50 transition-all flex items-center justify-between group"
                   >
                     <div className="flex items-center gap-3">
@@ -394,7 +394,7 @@ function SatelliteContent() {
                 Masuk via Central SSO BPVP
               </Link>
               <a
-                href={process.env.NEXT_PUBLIC_SIMPEG_URL || (process.env.NODE_ENV === "production" ? "https://simpegbpvp.vercel.app" : "http://localhost:3000")}
+                href={process.env.NEXT_PUBLIC_SIMPEG_URL || "https://simpegbpvp.vercel.app"}
                 className="w-full sm:w-auto border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs h-10 px-5 rounded-lg flex items-center justify-center transition"
               >
                 Kembali ke SIMPEG BPVP

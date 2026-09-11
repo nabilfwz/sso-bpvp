@@ -27,11 +27,7 @@ interface ASNAccount {
 function SsoPortalContent() {
   const searchParams = useSearchParams();
   const service = searchParams.get("service") || "simpeg";
-  const defaultSimpegUrl =
-    process.env.NEXT_PUBLIC_SIMPEG_URL ||
-    (process.env.NODE_ENV === "production"
-      ? "https://simpegbpvp.vercel.app"
-      : "http://localhost:3000");
+  const defaultSimpegUrl = process.env.NEXT_PUBLIC_SIMPEG_URL || "https://simpegbpvp.vercel.app";
   const defaultCallback = `${defaultSimpegUrl}/auth/sso-callback`;
   const callbackUrl = searchParams.get("callbackUrl") || defaultCallback;
 
