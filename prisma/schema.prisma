@@ -1,0 +1,182 @@
+// Prisma schema for SIMPEG BPVP (Manajemen Pegawai BPVP)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model MasterData {
+  id        String   @id @default(cuid())
+  kategori  String   // PANGKAT_GOLONGAN, JABATAN, UNIT_KERJA, PENDIDIKAN, AGAMA, STATUS_PEGAWAI, STATUS_PERKAWINAN, JENIS_KELAMIN, PROVINSI, KABUPATEN_KOTA, KECAMATAN, DESA_KELURAHAN, DIRJEN, SUB_UNIT_KERJA, ESELON
+  kode      String?
+  label     String
+  urutan    Int      @default(0)
+  aktif     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Hierarchical self-relation
+  parentId  String?
+  parent    MasterData?  @relation("MasterDataHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  MasterData[] @relation("MasterDataHierarchy")
+
+  // Relations to Pegawai
+  pegawaiJenisKelamin     Pegawai[]        @relation("PegawaiJenisKelamin")
+  pegawaiAgama            Pegawai[]        @relation("PegawaiAgama")
+  pegawaiStatusPerkawinan Pegawai[]        @relation("PegawaiStatusPerkawinan")
+  pegawaiPendidikan       Pegawai[]        @relation("PegawaiPendidikan")
+  pegawaiUnitKerja        Pegawai[]        @relation("PegawaiUnitKerja")
+  pegawaiStatus           Pegawai[]        @relation("PegawaiStatus")
+  pegawaiTempatLahir      Pegawai[]        @relation("PegawaiTempatLahir")
+
+  // Hierarchical address relations to Pegawai
+  pegawaiProvinsi         Pegawai[]        @relation("PegawaiProvinsi")
+  pegawaiKabupatenKota    Pegawai[]        @relation("PegawaiKabupatenKota")
+  pegawaiKecamatan        Pegawai[]        @relation("PegawaiKecamatan")
+  pegawaiDesa             Pegawai[]        @relation("PegawaiDesa")
+
+  // Placement & Eselon relations to Pegawai
+  pegawaiDirjen           Pegawai[]        @relation("PegawaiDirjen")
+  pegawaiSubUnitKerja     Pegawai[]        @relation("PegawaiSubUnitKerja")
+  pegawaiEselon           Pegawai[]        @relation("PegawaiEselon")
+
+  // Relations to Riwayat
+  riwayatPangkat          RiwayatPangkat[]
+  riwayatJabatanJabatan   RiwayatJabatan[] @relation("RiwayatJabatanJabatan")
+  riwayatJabatanUnitKerja RiwayatJabatan[] @relation("RiwayatJabatanUnitKerja")
+
+  @@index([kategori, aktif])
+  @@index([parentId])
+}
+
+model Pegawai {
+  id                  String    @id @default(cuid())
+  nip                 String    @unique
+  nama                String
+  jenisKelaminId      String
+  jenisKelamin        MasterData @relation("PegawaiJenisKelamin", fields: [jenisKelaminId], references: [id])
+  tempatLahir         String
+  tempatLahirId       String?
+  tempatLahirRelasi   MasterData? @relation("PegawaiTempatLahir", fields: [tempatLahirId], references: [id])
+  tanggalLahir        DateTime
+  agamaId             String
+  agama               MasterData @relation("PegawaiAgama", fields: [agamaId], references: [id])
+  statusPerkawinanId  String
+  statusPerkawinan    MasterData @relation("PegawaiStatusPerkawinan", fields: [statusPerkawinanId], references: [id])
+
+  // Hierarchical Address
+  provinsiId          String?
+  provinsi            MasterData? @relation("PegawaiProvinsi", fields: [provinsiId], references: [id])
+  kabupatenKotaId     String?
+  kabupatenKota       MasterData? @relation("PegawaiKabupatenKota", fields: [kabupatenKotaId], references: [id])
+  kecamatanId         String?
+  kecamatan           MasterData? @relation("PegawaiKecamatan", fields: [kecamatanId], references: [id])
+  desaId              String?
+  desa                MasterData? @relation("PegawaiDesa", fields: [desaId], references: [id])
+  alamat              String
+
+  noHp                String?
+  email               String?
+  pendidikanTerakhirId String
+  pendidikanTerakhir  MasterData @relation("PegawaiPendidikan", fields: [pendidikanTerakhirId], references: [id])
+
+  // Detailed Placement & Eselon
+  dirjenId            String?
+  dirjen              MasterData? @relation("PegawaiDirjen", fields: [dirjenId], references: [id])
+  unitKerjaId         String    // Penempatan (Balai / Unit Utama)
+  unitKerja           MasterData @relation("PegawaiUnitKerja", fields: [unitKerjaId], references: [id])
+  subUnitKerjaId      String?
+  subUnitKerja        MasterData? @relation("PegawaiSubUnitKerja", fields: [subUnitKerjaId], references: [id])
+  eselonId            String?
+  eselon              MasterData? @relation("PegawaiEselon", fields: [eselonId], references: [id])
+
+  statusPegawaiId     String
+  statusPegawai       MasterData @relation("PegawaiStatus", fields: [statusPegawaiId], references: [id])
+  fotoUrl             String?
+  aktif               Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  riwayatPangkat      RiwayatPangkat[]
+  riwayatJabatan      RiwayatJabatan[]
+
+  @@index([nama])
+  @@index([nip])
+  @@index([dirjenId])
+  @@index([unitKerjaId])
+  @@index([subUnitKerjaId])
+  @@index([eselonId])
+  @@index([statusPegawaiId])
+  @@index([provinsiId])
+  @@index([kabupatenKotaId])
+  @@index([kecamatanId])
+  @@index([desaId])
+  @@index([tempatLahirId])
+}
+
+model RiwayatPangkat {
+  id                String     @id @default(cuid())
+  pegawaiId         String
+  pegawai           Pegawai    @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
+  pangkatGolonganId String
+  pangkatGolongan   MasterData @relation(fields: [pangkatGolonganId], references: [id])
+  tmt               DateTime
+  noSk              String?
+  tanggalSk         DateTime?
+  keterangan        String?
+  createdAt         DateTime   @default(now())
+
+  @@index([pegawaiId])
+}
+
+model RiwayatJabatan {
+  id          String     @id @default(cuid())
+  pegawaiId   String
+  pegawai     Pegawai    @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
+  jabatanId   String
+  jabatan     MasterData @relation("RiwayatJabatanJabatan", fields: [jabatanId], references: [id])
+  unitKerjaId String
+  unitKerja   MasterData @relation("RiwayatJabatanUnitKerja", fields: [unitKerjaId], references: [id])
+  tmt         DateTime
+  noSk        String?
+  tanggalSk   DateTime?
+  keterangan  String?
+  createdAt   DateTime   @default(now())
+
+  @@index([pegawaiId])
+}
+
+model User {
+  id           String         @id @default(cuid())
+  nama         String
+  email        String         @unique
+  password     String
+  role         String         @default("operator") // "admin" | "operator"
+  aktif        Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+
+  logAktivitas LogAktivitas[]
+}
+
+model LogAktivitas {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aksi        String   // "CREATE" | "UPDATE" | "DELETE"
+  entitas     String   // "MasterData", "Pegawai", "RiwayatPangkat", "RiwayatJabatan", "User"
+  entitasId   String
+  deskripsi   String
+  dataSebelum Json?
+  dataSesudah Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([entitas])
+  @@index([createdAt])
+}
