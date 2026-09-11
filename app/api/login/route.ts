@@ -12,7 +12,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const identifier = body?.identifier?.trim();
-    const callbackUrl = body?.callbackUrl?.trim() || "http://localhost:3000/api/auth/sso/callback";
+    const defaultSimpegUrl =
+      process.env.NEXT_PUBLIC_SIMPEG_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://simpegbpvp.vercel.app"
+        : "http://localhost:3000");
+    const defaultCallback = `${defaultSimpegUrl}/auth/sso-callback`;
+    const callbackUrl = body?.callbackUrl?.trim() || defaultCallback;
 
     if (!identifier) {
       return NextResponse.json(

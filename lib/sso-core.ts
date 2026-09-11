@@ -37,7 +37,11 @@ export const BPVP_ECOSYSTEM_APPS: BpvpApp[] = [
     nama: "SIMPEG BPVP Banda Aceh",
     deskripsi: "Sistem Informasi Manajemen Pegawai & Layanan Kepegawaian ASN",
     kategori: "Kepegawaian & SDM",
-    url: "http://localhost:3000",
+    url:
+      process.env.NEXT_PUBLIC_SIMPEG_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://simpegbpvp.vercel.app"
+        : "http://localhost:3000"),
     icon: "👥",
     color: "from-blue-600 to-[#003399]",
     badge: "Aplikasi Utama",

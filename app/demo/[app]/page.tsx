@@ -276,9 +276,9 @@ function SatelliteContent() {
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  {/* SIMPEG BPVP (Client Port 3000) */}
+                  {/* SIMPEG BPVP (Client App) */}
                   <a
-                    href={`http://localhost:3000/api/auth/sso/callback?sso_token=${encodeURIComponent(ssoToken)}`}
+                    href={`${process.env.NEXT_PUBLIC_SIMPEG_URL || (process.env.NODE_ENV === "production" ? "https://simpegbpvp.vercel.app" : "http://localhost:3000")}/api/auth/sso/callback?sso_token=${encodeURIComponent(ssoToken)}`}
                     className="p-3.5 rounded-xl border border-slate-200 hover:border-[#003399] hover:bg-blue-50/50 transition-all flex items-center justify-between group"
                   >
                     <div className="flex items-center gap-3">
@@ -287,7 +287,7 @@ function SatelliteContent() {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-slate-800 group-hover:text-[#003399]">
-                          SIMPEG BPVP (Port 3000)
+                          SIMPEG BPVP
                         </h4>
                         <p className="text-[10px] text-slate-500">Masuk ke Dashboard Pegawai</p>
                       </div>
@@ -388,16 +388,16 @@ function SatelliteContent() {
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href={`/?service=${appKey}&callbackUrl=${encodeURIComponent(`http://localhost:3001/demo/${appKey}`)}`}
+                href={`/?service=${appKey}`}
                 className="w-full sm:w-auto bg-[#003399] hover:bg-[#002266] text-white font-bold text-xs h-10 px-6 rounded-lg flex items-center justify-center shadow-md transition"
               >
-                Masuk via Central SSO BPVP (Port 3001)
+                Masuk via Central SSO BPVP
               </Link>
               <a
-                href="http://localhost:3000"
+                href={process.env.NEXT_PUBLIC_SIMPEG_URL || (process.env.NODE_ENV === "production" ? "https://simpegbpvp.vercel.app" : "http://localhost:3000")}
                 className="w-full sm:w-auto border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs h-10 px-5 rounded-lg flex items-center justify-center transition"
               >
-                Kembali ke SIMPEG BPVP (Port 3000)
+                Kembali ke SIMPEG BPVP
               </a>
             </div>
           </div>
