@@ -185,6 +185,101 @@ export async function validatePegawaiForSso(identifier: string): Promise<{
 }
 
 /**
+ * Autentikasi Pegawai/User SSO dengan verifikasi password.
+ * Ini adalah fungsi yang digunakan pada alur login SSO yang benar —
+ * user WAJIB memasukkan NIP/Email + Password untuk bisa masuk.
+ */
+export async function authenticatePegawaiWithPassword(
+  identifier: string,
+  password: string
+): Promise<{
+  user: { id: string; nama: string; email: string; role: string; aktif: boolean };
+  pegawai?: any;
+}> {
+  if (!password || password.trim().length === 0) {
+    throw new Error("Password wajib diisi.");
+  }
+
+  const cleanId = identifier.trim();
+  const cleanEmail = cleanId.toLowerCase();
+
+  // 1. Cari di tabel Pegawai BPVP
+  const pegawai = await prisma.pegawai.findFirst({
+    where: {
+      OR: [
+        { email: { equals: cleanEmail, mode: "insensitive" } },
+        { nip: cleanId },
+      ],
+    },
+    include: {
+      unitKerja: true,
+      subUnitKerja: true,
+      dirjen: true,
+      statusPegawai: true,
+      eselon: true,
+    },
+  });
+
+  if (pegawai) {
+    if (!pegawai.aktif) {
+      throw new Error(
+        `Akses Ditolak: Pegawai "${pegawai.nama}" (${pegawai.nip}) berstatus NONAKTIF (berada di tong sampah). Hubungi Administrator Kepegawaian BPVP.`
+      );
+    }
+
+    const employeeEmail = pegawai.email?.toLowerCase().trim() || `${pegawai.nip}@bpvp.kemnaker.go.id`;
+
+    // Cari akun User yang terhubung
+    const user = await prisma.user.findUnique({
+      where: { email: employeeEmail },
+    });
+
+    if (!user) {
+      throw new Error(
+        `Akun login untuk pegawai "${pegawai.nama}" (${pegawai.nip}) belum dibuat. Hubungi Administrator untuk membuat akun dan mengatur password.`
+      );
+    }
+
+    if (!user.aktif) {
+      throw new Error(
+        `Akses Ditolak: Akun login pengguna untuk "${pegawai.nama}" telah dinonaktifkan oleh administrator.`
+      );
+    }
+
+    // Verifikasi password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error("NIP/Email atau password salah. Silakan coba lagi.");
+    }
+
+    return { user, pegawai };
+  }
+
+  // 2. Fallback untuk administrator sistem (tabel User)
+  const systemUser = await prisma.user.findUnique({
+    where: { email: cleanEmail },
+  });
+
+  if (systemUser) {
+    if (!systemUser.aktif) {
+      throw new Error(`Akses Ditolak: Akun login "${systemUser.email}" dinonaktifkan.`);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, systemUser.password);
+    if (!isPasswordValid) {
+      throw new Error("Email atau password salah. Silakan coba lagi.");
+    }
+
+    return { user: systemUser };
+  }
+
+  // 3. Penolakan Orang Luar
+  throw new Error(
+    `Akses Ditolak: Email atau NIP "${identifier}" TIDAK TERDAFTAR dalam Data Manajemen Pegawai BPVP. Hanya ASN dan Pegawai resmi BPVP yang berhak mengakses Ekosistem SSO BPVP.`
+  );
+}
+
+/**
  * Menerbitkan Token SSO Kriptografis Cross-App (HMAC-SHA256).
  */
 export function generateSsoToken(

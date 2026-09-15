@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validatePegawaiForSso, generateSsoToken } from "@/lib/sso-core";
+import { authenticatePegawaiWithPassword, generateSsoToken } from "@/lib/sso-core";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Central SSO Login Endpoint.
- * Memverifikasi NIP / Email terhadap Database Manajemen Pegawai BPVP.
+ * Memverifikasi NIP / Email + Password terhadap Database Manajemen Pegawai BPVP.
  * Menerbitkan Token SSO Cross-App (HMAC-SHA256) & mengembalikan redirect URL ke client app.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const identifier = body?.identifier?.trim();
+    const password = body?.password;
     const defaultSimpegUrl = process.env.NEXT_PUBLIC_SIMPEG_URL || "https://simpegbpvp.vercel.app";
     const defaultCallback = `${defaultSimpegUrl}/auth/sso-callback`;
     const callbackUrl = body?.callbackUrl?.trim() || defaultCallback;
@@ -23,9 +24,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validasi ketat terhadap database Manajemen Pegawai BPVP
-    // Orang luar dan pegawai nonaktif (di tong sampah) otomatis dilempar error
-    const { user, pegawai } = await validatePegawaiForSso(identifier);
+    if (!password) {
+      return NextResponse.json(
+        { success: false, error: "Password wajib diisi." },
+        { status: 400 }
+      );
+    }
+
+    // Validasi ketat terhadap database Manajemen Pegawai BPVP + verifikasi password
+    const { user, pegawai } = await authenticatePegawaiWithPassword(identifier, password);
 
     // Terbitkan Token SSO
     const token = generateSsoToken(user, pegawai);
