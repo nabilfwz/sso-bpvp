@@ -298,7 +298,7 @@ export function generateSsoToken(
     email: user.email,
     role: user.role,
     unitKerja: pegawai?.unitKerja?.label || "Balai Pelatihan Vokasi dan Produktivitas Banda Aceh",
-    subUnitKerja: pegawai?.subUnitKerja?.label || (user.role === "admin" ? "Subbagian Umum" : "Operasional"),
+    subUnitKerja: pegawai?.subUnitKerja?.label || (user.role === "superadmin" ? "Subbagian Umum" : "Operasional"),
     statusPegawai: pegawai?.statusPegawai?.label || "ASN Kemnaker",
     iat: now,
     exp,
