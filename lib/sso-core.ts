@@ -134,7 +134,7 @@ export async function validatePegawaiForSso(identifier: string): Promise<{
       subUnit.includes("pimpinan") ||
       subUnit.includes("tata usaha") ||
       pegawai.nip === "198001012005011001";
-    const assignedRole = isElevated ? "admin" : "operator";
+    const assignedRole = isElevated ? "admin" : "user";
 
     // Temukan atau sinkronkan akun User internal
     let user = await prisma.user.findUnique({
