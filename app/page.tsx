@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Layers,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 
 function SsoPortalContent() {
@@ -19,46 +20,47 @@ function SsoPortalContent() {
   const defaultCallback = `${defaultSimpegUrl}/auth/sso-callback`;
   const callbackUrl = searchParams.get("callbackUrl") || defaultCallback;
 
+  const errorParam = searchParams.get("error");
+  const rejectedEmail = searchParams.get("email");
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showAccountModal, setShowAccountModal] = useState(false);
-  const [customGmail, setCustomGmail] = useState("");
 
-  const handleProcessLogin = async (googleEmail: string) => {
-    setError("");
+  const googleOAuthUrl = `/api/auth/google?service=${encodeURIComponent(
+    service
+  )}&callbackUrl=${encodeURIComponent(callbackUrl)}`;
+
+  const handleGoogleClick = () => {
     setLoading(true);
+    window.location.href = googleOAuthUrl;
+  };
 
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: googleEmail.trim().toLowerCase(),
-          callbackUrl,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setError(data.error || "Autentikasi SSO gagal.");
-        setLoading(false);
-        return;
-      }
-
-      // Hard redirect ke aplikasi klien dengan sso_token
-      window.location.href = data.redirectUrl;
-    } catch {
-      setError("Gagal terhubung dengan server SSO BPVP. Periksa koneksi Anda.");
-      setLoading(false);
+  const getErrorMessage = () => {
+    if (!errorParam) return null;
+    if (errorParam === "EmailTidakTerdaftar") {
+      return (
+        <>
+          Akun Google{" "}
+          <strong className="text-red-950 font-mono underline">
+            {rejectedEmail || "Anda"}
+          </strong>{" "}
+          tidak terdaftar dalam basis data resmi <strong>Pegawai BPVP Banda Aceh</strong>. Hanya ASN &amp; Pegawai BPVP aktif yang berhak mengakses sistem.
+        </>
+      );
     }
+    if (errorParam === "GoogleOAuthConfigMissing") {
+      return (
+        <>
+          Konfigurasi OAuth Google (<code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code>) belum diisi di server SSO (.env). Hubungi Administrator Sistem.
+        </>
+      );
+    }
+    if (errorParam === "GoogleAuthCancelled") {
+      return "Proses otentikasi Google dibatalkan.";
+    }
+    return "Autentikasi akun Google gagal. Silakan coba kembali.";
   };
 
-  const handleGoogleSignInClick = () => {
-    // Membuka modal pemilihan akun Google / Gmail
-    setShowAccountModal(true);
-    setError("");
-  };
+  const errorMessage = getErrorMessage();
 
   return (
     <>
@@ -82,7 +84,7 @@ function SsoPortalContent() {
           </div>
           <div className="hidden sm:flex items-center gap-2 text-xs bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
             <Shield className="w-3.5 h-3.5 text-amber-300" />
-            <span>SSO Terpusat • Verifikasi Database Pegawai</span>
+            <span>SSO Terpusat &bull; Google Workspace / Gmail</span>
           </div>
         </div>
       </header>
@@ -116,64 +118,72 @@ function SsoPortalContent() {
           {/* Card Body */}
           <div className="p-7 sm:p-8 space-y-6">
             {/* Error Banner */}
-            {error && (
+            {errorMessage && (
               <div className="p-4 bg-red-50 border-l-4 border-red-600 rounded-r-xl text-red-800 space-y-1 animate-in fade-in duration-200">
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 text-red-600 shrink-0" />
                   <p className="font-bold text-sm">Autentikasi SSO Ditolak</p>
                 </div>
                 <p className="text-xs text-red-700 leading-relaxed pl-7">
-                  {error}
+                  {errorMessage}
                 </p>
               </div>
             )}
 
             <div className="text-center space-y-1.5">
               <p className="text-sm font-bold text-slate-800">
-                Single Sign-On Tanpa Kata Sandi
+                Otentikasi Akun Google (Gmail)
               </p>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Silakan masuk menggunakan akun <strong>Google (Gmail)</strong> atau akun media sosial kedinasan Anda. Sistem akan memverifikasi apakah email Anda terdaftar dalam database Pegawai BPVP Banda Aceh.
+                Masuk menggunakan akun <strong>Gmail / Google Workspace</strong> Anda. Sistem akan memverifikasi apakah email Anda terdaftar dalam database Pegawai BPVP.
               </p>
             </div>
 
-            {/* Social / Google Login Button */}
+            {/* Official Google Login Button */}
             <div className="space-y-3 pt-2">
               <button
                 type="button"
-                id="btn-sso-google"
-                onClick={handleGoogleSignInClick}
+                id="btn-google-oauth"
+                onClick={handleGoogleClick}
                 disabled={loading}
-                className="w-full py-3.5 px-4 bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm rounded-xl border-2 border-slate-200 hover:border-[#003399]/40 shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60 group"
+                className="w-full py-4 px-5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm rounded-2xl border-2 border-slate-200 hover:border-[#003399]/40 shadow-md hover:shadow-lg transition-all flex items-center justify-between cursor-pointer disabled:opacity-60 group"
               >
-                {/* Official Google SVG Icon */}
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
+                <div className="flex items-center gap-3">
+                  {/* Official Google SVG Icon */}
+                  <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-slate-100 shadow-2xs">
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-extrabold text-slate-800 group-hover:text-[#003399] transition-colors">
+                      Masuk dengan Akun Google
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Otentikasi Aman Gmail / Google
+                    </p>
+                  </div>
+                </div>
+
                 {loading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-[#003399]" />
-                    Memverifikasi Basis Data...
-                  </span>
+                  <Loader2 className="w-5 h-5 animate-spin text-[#003399]" />
                 ) : (
-                  <span className="text-slate-800 group-hover:text-[#003399] transition-colors">
-                    Masuk dengan Akun Google (Gmail)
-                  </span>
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#003399] group-hover:translate-x-1 transition-all" />
                 )}
               </button>
             </div>
@@ -182,7 +192,7 @@ function SsoPortalContent() {
             <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-100 flex items-start gap-2.5">
               <ShieldCheck className="w-5 h-5 text-[#003399] shrink-0 mt-0.5" />
               <p className="text-xs text-blue-900 leading-relaxed">
-                Hanya email Google yang terdaftar di basis data <strong>Pegawai BPVP Banda Aceh</strong> yang berhak masuk. Token SSO lintas aplikasi akan diterbitkan secara otomatis.
+                Hanya akun Google yang emailnya terdaftar di basis data <strong>Pegawai BPVP Banda Aceh</strong> yang diizinkan masuk. Token SSO lintas aplikasi akan otomatis diterbitkan.
               </p>
             </div>
 
@@ -202,144 +212,10 @@ function SsoPortalContent() {
         </div>
       </main>
 
-      {/* Modal Dialog Akun Google (Simulasi Google Account Chooser) */}
-      {showAccountModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div
-            className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-                <h3 className="font-bold text-slate-800 text-sm">
-                  Pilih Akun Google (Gmail)
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAccountModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-lg p-1 leading-none"
-              >
-                &times;
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-slate-500">
-                Pilih akun Google Anda yang terhubung dengan akun kedinasan BPVP Banda Aceh:
-              </p>
-
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAccountModal(false);
-                    handleProcessLogin("inispectre@gmail.com");
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-[#003399] hover:bg-blue-50/50 transition text-left group"
-                >
-                  <div className="w-9 h-9 rounded-full bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    MN
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-800 group-hover:text-[#003399]">
-                      Muhammad Nabil Fawwaz
-                    </p>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      inispectre@gmail.com
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 uppercase shrink-0">
-                    Superadmin
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAccountModal(false);
-                    handleProcessLogin("iskandar.umum@kemnaker.go.id");
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-[#003399] hover:bg-blue-50/50 transition text-left group"
-                >
-                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    IM
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-800 group-hover:text-[#003399]">
-                      Iskandar Muda, S.Sos., M.M.
-                    </p>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      iskandar.umum@kemnaker.go.id
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 uppercase shrink-0">
-                    Admin
-                  </span>
-                </button>
-              </div>
-
-              {/* Gunakan akun lain */}
-              <div className="pt-2 border-t border-slate-100">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!customGmail.trim()) return;
-                    setShowAccountModal(false);
-                    handleProcessLogin(customGmail.trim());
-                  }}
-                  className="space-y-2"
-                >
-                  <label className="block text-[11px] font-bold text-slate-600">
-                    Gunakan Akun Google Lain:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      required
-                      value={customGmail}
-                      onChange={(e) => setCustomGmail(e.target.value)}
-                      placeholder="email.anda@gmail.com"
-                      className="flex-1 px-3 h-9 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003399]"
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 h-9 bg-[#003399] text-white text-xs font-bold rounded-lg hover:bg-[#002266] transition"
-                    >
-                      Pilih
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 text-[11px] py-4 px-6 text-center border-t border-slate-800">
         <p className="font-medium text-slate-300">
-          Kementerian Ketenagakerjaan Republik Indonesia • Balai Pelatihan Vokasi dan Produktivitas (BPVP) Banda Aceh
+          Kementerian Ketenagakerjaan Republik Indonesia &bull; Balai Pelatihan Vokasi dan Produktivitas (BPVP) Banda Aceh
         </p>
         <p className="mt-0.5 text-slate-500">
           Layanan Single Sign-On (SSO) Terpusat — Server IDP Standalone
