@@ -87,7 +87,46 @@ export const BPVP_ECOSYSTEM_APPS: BpvpApp[] = [
     icon: "🏛️",
     color: "from-rose-600 to-pink-800",
   },
+  {
+    id: "absensi",
+    nama: "Presensi & Absensi ASN",
+    deskripsi: "Sistem Presensi Online & Rekapitulasi Kehadiran Pegawai",
+    kategori: "Kepegawaian",
+    url: "https://absensi-bpvp.vercel.app",
+    icon: "⏱️",
+    color: "from-violet-600 to-purple-800",
+    badge: "Aplikasi Baru",
+  },
 ];
+
+/**
+ * Mengambil daftar ekosistem aplikasi secara dinamis dari tabel Application di database SSO.
+ */
+export async function getEcosystemApps(): Promise<BpvpApp[]> {
+  try {
+    const dbApps = await prisma.application.findMany({
+      where: { aktif: true },
+      orderBy: { urutan: "asc" },
+    });
+
+    if (dbApps && dbApps.length > 0) {
+      return dbApps.map((a) => ({
+        id: a.id,
+        nama: a.nama,
+        deskripsi: a.deskripsi || "",
+        kategori: a.kategori,
+        url: a.url,
+        icon: a.icon || "📱",
+        color: a.color || "from-blue-600 to-[#003399]",
+        badge: a.badge || undefined,
+      }));
+    }
+  } catch (error) {
+    console.warn("Gagal membaca Application dari database, menggunakan fallback static:", error);
+  }
+
+  return BPVP_ECOSYSTEM_APPS;
+}
 
 /**
  * Validasi identitas NIP / Email terhadap Database Manajemen Pegawai SIMPEG via API.

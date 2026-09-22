@@ -63,3 +63,24 @@ model LogAktivitas {
   @@index([entitas])
   @@index([createdAt])
 }
+
+// 4. Registry Aplikasi Ekosistem BPVP yang Terdaftar di SSO
+model Application {
+  id          String   @id // "simpeg" | "skillhub" | "maganghub" | "lsp" | "keuangan" | "ptsp" | "absensi"
+  nama        String
+  deskripsi   String?
+  kategori    String   // "Kepegawaian & SDM" | "Pelatihan Vokasi" | "Sertifikasi" | "Keuangan & Sarana" | "Pelayanan Publik" | dll
+  url         String
+  icon        String?  // Emoji / Icon SVG, misal: "👥", "🎓", "🏢", "⏱️"
+  color       String?  // CSS gradient, misal: "from-blue-600 to-[#003399]"
+  badge       String?  // "Aplikasi Utama" | null
+  apiKey      String?  // Secret API Key untuk autentikasi M2M khusus
+  aktif       Boolean  @default(true)
+  urutan      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([aktif])
+  @@index([urutan])
+}
+
