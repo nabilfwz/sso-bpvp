@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
     // Jika user belum ada di tabel User SSO, coba sinkronkan dari SIMPEG
     if (updateMasterResult.count === 0) {
       try {
-        const { validatePegawaiViaSimpeg } = await import("@/lib/sso-core");
-        const res = await validatePegawaiViaSimpeg(cleanEmail);
+        const { validatePegawaiForSso } = await import("@/lib/sso-core");
+        const res = await validatePegawaiForSso(cleanEmail);
         if (res?.user) {
           await prisma.user.update({
             where: { id: res.user.id },
