@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204 });
+}
+
 /**
  * Endpoint untuk mencabut (revoke) session token pada aplikasi satelit tertentu.
  * Menghapus/mengosongkan sessionToken dari baris SatelliteUser di database.

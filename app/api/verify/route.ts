@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204 });
+}
+
 /**
  * Public SSO Token Verification & JIT User Provisioning API.
  * Digunakan oleh SIMPEG, Skillhub, Maganghub, LSP, Keuangan, dan PTSP untuk memverifikasi keabsahan token SSO.

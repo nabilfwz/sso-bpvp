@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204 });
+}
+
 /**
  * Endpoint untuk melihat daftar User Lokal aplikasi satelit tertentu (misal: Skillhub, Maganghub, dll).
  * Digunakan untuk visualisasi bahwa tiap aplikasi satelit memiliki tabel User tersendiri dengan sessionToken yang tersimpan.
