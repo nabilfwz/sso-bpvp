@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validatePegawaiForSso, generateSsoToken } from "@/lib/sso-core";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,17 @@ export async function POST(request: NextRequest) {
 
     // Terbitkan Token SSO
     const token = generateSsoToken(user, pegawai);
+
+    // Simpan sessionToken di tabel User database
+    const tokenExpiredAt = new Date((Math.floor(Date.now() / 1000) + 3600) * 1000);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        sessionToken: token,
+        tokenExpiredAt,
+        lastLoginAt: new Date(),
+      },
+    });
 
     // Susun redirect URL dengan melampirkan sso_token
     const urlObj = new URL(callbackUrl);

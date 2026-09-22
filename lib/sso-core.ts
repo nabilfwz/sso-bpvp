@@ -90,104 +90,76 @@ export const BPVP_ECOSYSTEM_APPS: BpvpApp[] = [
 ];
 
 /**
- * Validasi ketat identitas NIP / Email terhadap Database Manajemen Pegawai BPVP.
- * Orang luar dan pegawai nonaktif (di tong sampah) otomatis ditolak dengan pesan jelas.
+ * Validasi identitas NIP / Email terhadap Database Manajemen Pegawai SIMPEG via API.
+ * Hanya SSO yang berkomunikasi ke SIMPEG.
+ * Orang luar dan pegawai nonaktif (di tong sampah) otomatis ditolak oleh SIMPEG.
  */
 export async function validatePegawaiForSso(identifier: string): Promise<{
   user: { id: string; nama: string; email: string; role: string; aktif: boolean };
   pegawai?: any;
 }> {
   const cleanId = identifier.trim();
-  const cleanEmail = cleanId.toLowerCase();
+  const simpegBaseUrl =
+    process.env.SIMPEG_API_URL ||
+    process.env.NEXT_PUBLIC_SIMPEG_URL ||
+    "https://simpegbpvp.vercel.app";
 
-  // 1. Cari di tabel Pegawai BPVP (Single Source of Truth)
-  const pegawai = await prisma.pegawai.findFirst({
-    where: {
-      OR: [
-        { email: { equals: cleanEmail, mode: "insensitive" } },
-        { nip: cleanId },
-      ],
-    },
-    include: {
-      unitKerja: true,
-      subUnitKerja: true,
-      dirjen: true,
-      statusPegawai: true,
-      eselon: true,
-    },
-  });
+  let simpegData: any = null;
+  try {
+    const res = await fetch(
+      `${simpegBaseUrl}/api/sso/validate-pegawai?identifier=${encodeURIComponent(cleanId)}`,
+      { cache: "no-store" }
+    );
+    const json = await res.json();
 
-  if (pegawai) {
-    // Periksa status keaktifan pegawai (apakah ada di tong sampah)
-    if (!pegawai.aktif) {
+    if (!res.ok || !json.success) {
       throw new Error(
-        `Akses Ditolak: Pegawai "${pegawai.nama}" (${pegawai.nip}) berstatus NONAKTIF (berada di tong sampah). Hubungi Administrator Kepegawaian BPVP.`
+        json.error || `Akses Ditolak: Identitas "${identifier}" tidak valid atau berstatus nonaktif di SIMPEG.`
       );
     }
-
-    const employeeEmail = pegawai.email?.toLowerCase().trim() || `${pegawai.nip}@bpvp.kemnaker.go.id`;
-
-    // Penentuan role sistem
-    const subUnit = pegawai.subUnitKerja?.label?.toLowerCase() || "";
-    const isElevated =
-      subUnit.includes("umum") ||
-      subUnit.includes("pimpinan") ||
-      subUnit.includes("tata usaha") ||
-      pegawai.nip === "198001012005011001";
-    const assignedRole = isElevated ? "admin" : "user";
-
-    // Temukan atau sinkronkan akun User internal
-    let user = await prisma.user.findUnique({
-      where: { email: employeeEmail },
-    });
-
-    if (user) {
-      if (!user.aktif) {
-        throw new Error(
-          `Akses Ditolak: Akun login pengguna untuk "${pegawai.nama}" telah dinonaktifkan oleh administrator.`
-        );
-      }
-    } else {
-      const randomPassword = await bcrypt.hash(
-        crypto.randomBytes(16).toString("hex"),
-        10
-      );
-      user = await prisma.user.create({
-        data: {
-          email: employeeEmail,
-          nama: pegawai.nama,
-          password: randomPassword,
-          role: assignedRole,
-          aktif: true,
-        },
-      });
-    }
-
-    return { user, pegawai };
+    simpegData = json;
+  } catch (err: any) {
+    throw new Error(err.message || `Gagal menghubungi server SIMPEG BPVP (${simpegBaseUrl}).`);
   }
 
-  // 2. Fallback untuk administrator sistem yang terdaftar di tabel User
-  const systemUser = await prisma.user.findUnique({
-    where: { email: cleanEmail },
+  const employeeEmail = (
+    simpegData.pegawai?.email ||
+    simpegData.user?.email ||
+    `${cleanId}@bpvp.kemnaker.go.id`
+  ).toLowerCase().trim();
+
+  const employeeNama = simpegData.pegawai?.nama || simpegData.user?.nama || "Pegawai BPVP";
+  const assignedRole = simpegData.user?.role || "user";
+
+  // Temukan atau sinkronkan akun User di database SSO lokal
+  let user = await prisma.user.findUnique({
+    where: { email: employeeEmail },
   });
 
-  if (systemUser) {
-    if (!systemUser.aktif) {
-      throw new Error(`Akses Ditolak: Akun login administrator "${systemUser.email}" dinonaktifkan.`);
+  if (user) {
+    if (!user.aktif) {
+      throw new Error(
+        `Akses Ditolak: Akun login pengguna untuk "${employeeNama}" telah dinonaktifkan di server SSO.`
+      );
     }
-    return { user: systemUser };
+  } else {
+    const randomPassword = await bcrypt.hash(crypto.randomBytes(16).toString("hex"), 10);
+    user = await prisma.user.create({
+      data: {
+        email: employeeEmail,
+        nama: employeeNama,
+        password: randomPassword,
+        role: assignedRole,
+        aktif: true,
+      },
+    });
   }
 
-  // 3. Penolakan Orang Luar
-  throw new Error(
-    `Akses Ditolak: Email atau NIP "${identifier}" TIDAK TERDAFTAR dalam Data Manajemen Pegawai BPVP. Hanya ASN dan Pegawai resmi BPVP yang berhak mengakses Ekosistem SSO BPVP.`
-  );
+  return { user, pegawai: simpegData.pegawai };
 }
 
 /**
  * Autentikasi Pegawai/User SSO dengan verifikasi password.
- * Ini adalah fungsi yang digunakan pada alur login SSO yang benar —
- * user WAJIB memasukkan NIP/Email + Password untuk bisa masuk.
  */
 export async function authenticatePegawaiWithPassword(
   identifier: string,
@@ -200,83 +172,22 @@ export async function authenticatePegawaiWithPassword(
     throw new Error("Password wajib diisi.");
   }
 
-  const cleanId = identifier.trim();
-  const cleanEmail = cleanId.toLowerCase();
+  // 1. Validasi pegawai via SIMPEG API
+  const { user, pegawai } = await validatePegawaiForSso(identifier);
 
-  // 1. Cari di tabel Pegawai BPVP
-  const pegawai = await prisma.pegawai.findFirst({
-    where: {
-      OR: [
-        { email: { equals: cleanEmail, mode: "insensitive" } },
-        { nip: cleanId },
-      ],
-    },
-    include: {
-      unitKerja: true,
-      subUnitKerja: true,
-      dirjen: true,
-      statusPegawai: true,
-      eselon: true,
-    },
+  // 2. Verifikasi password di akun User lokal SSO
+  const fullUser = await prisma.user.findUnique({
+    where: { id: user.id },
   });
-
-  if (pegawai) {
-    if (!pegawai.aktif) {
-      throw new Error(
-        `Akses Ditolak: Pegawai "${pegawai.nama}" (${pegawai.nip}) berstatus NONAKTIF (berada di tong sampah). Hubungi Administrator Kepegawaian BPVP.`
-      );
-    }
-
-    const employeeEmail = pegawai.email?.toLowerCase().trim() || `${pegawai.nip}@bpvp.kemnaker.go.id`;
-
-    // Cari akun User yang terhubung
-    const user = await prisma.user.findUnique({
-      where: { email: employeeEmail },
-    });
-
-    if (!user) {
-      throw new Error(
-        `Akun login untuk pegawai "${pegawai.nama}" (${pegawai.nip}) belum dibuat. Hubungi Administrator untuk membuat akun dan mengatur password.`
-      );
-    }
-
-    if (!user.aktif) {
-      throw new Error(
-        `Akses Ditolak: Akun login pengguna untuk "${pegawai.nama}" telah dinonaktifkan oleh administrator.`
-      );
-    }
-
-    // Verifikasi password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new Error("NIP/Email atau password salah. Silakan coba lagi.");
-    }
-
-    return { user, pegawai };
+  if (!fullUser) {
+    throw new Error("Akun pengguna tidak ditemukan di server SSO.");
+  }
+  const isPasswordValid = await bcrypt.compare(password, fullUser.password);
+  if (!isPasswordValid) {
+    throw new Error("NIP/Email atau password salah. Silakan coba lagi.");
   }
 
-  // 2. Fallback untuk administrator sistem (tabel User)
-  const systemUser = await prisma.user.findUnique({
-    where: { email: cleanEmail },
-  });
-
-  if (systemUser) {
-    if (!systemUser.aktif) {
-      throw new Error(`Akses Ditolak: Akun login "${systemUser.email}" dinonaktifkan.`);
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, systemUser.password);
-    if (!isPasswordValid) {
-      throw new Error("Email atau password salah. Silakan coba lagi.");
-    }
-
-    return { user: systemUser };
-  }
-
-  // 3. Penolakan Orang Luar
-  throw new Error(
-    `Akses Ditolak: Email atau NIP "${identifier}" TIDAK TERDAFTAR dalam Data Manajemen Pegawai BPVP. Hanya ASN dan Pegawai resmi BPVP yang berhak mengakses Ekosistem SSO BPVP.`
-  );
+  return { user, pegawai };
 }
 
 /**
@@ -297,9 +208,9 @@ export function generateSsoToken(
     nama: pegawai?.nama || user.nama,
     email: user.email,
     role: user.role,
-    unitKerja: pegawai?.unitKerja?.label || "Balai Pelatihan Vokasi dan Produktivitas Banda Aceh",
-    subUnitKerja: pegawai?.subUnitKerja?.label || (user.role === "superadmin" ? "Subbagian Umum" : "Operasional"),
-    statusPegawai: pegawai?.statusPegawai?.label || "ASN Kemnaker",
+    unitKerja: pegawai?.unitKerja || "Balai Pelatihan Vokasi dan Produktivitas Banda Aceh",
+    subUnitKerja: pegawai?.subUnitKerja || (user.role === "admin" ? "Subbagian Umum" : "Operasional"),
+    statusPegawai: pegawai?.statusPegawai || "ASN Kemnaker",
     iat: now,
     exp,
   };
@@ -314,7 +225,7 @@ export function generateSsoToken(
 }
 
 /**
- * Memverifikasi Token SSO Kriptografis dan memastikan pegawai & user masih aktif di database.
+ * Memverifikasi Token SSO Kriptografis.
  */
 export async function verifySsoToken(tokenString: string): Promise<SsoTokenPayload> {
   if (!tokenString || typeof tokenString !== "string" || !tokenString.includes(".")) {
@@ -344,21 +255,12 @@ export async function verifySsoToken(tokenString: string): Promise<SsoTokenPaylo
     throw new Error("Token SSO telah kadaluarsa. Silakan lakukan autentikasi ulang.");
   }
 
-  // Verifikasi status keaktifan di database
-  if (payload.pegawaiId) {
-    const currentPegawai = await prisma.pegawai.findUnique({
-      where: { id: payload.pegawaiId },
-    });
-    if (!currentPegawai || !currentPegawai.aktif) {
-      throw new Error("Akses Ditolak: Pegawai ini telah dinonaktifkan dari sistem BPVP.");
-    }
-  }
-
+  // Verifikasi keaktifan akun user di database SSO lokal
   const currentUser = await prisma.user.findUnique({
     where: { id: payload.userId },
   });
-  if (!currentUser || !currentUser.aktif) {
-    throw new Error("Akses Ditolak: Akun pengguna untuk sesi SSO ini telah dinonaktifkan.");
+  if (currentUser && !currentUser.aktif) {
+    throw new Error("Akses Ditolak: Akun pengguna untuk sesi SSO ini telah dinonaktifkan di server SSO.");
   }
 
   return payload;

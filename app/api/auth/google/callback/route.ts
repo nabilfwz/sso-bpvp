@@ -98,6 +98,22 @@ export async function GET(request: NextRequest) {
       // 4. Terbitkan Token SSO Kriptografis (HMAC-SHA256)
       const token = generateSsoToken(user, pegawai);
 
+      // Simpan sessionToken di database User master
+      try {
+        const { prisma } = await import("@/lib/prisma");
+        const tokenExpiredAt = new Date((Math.floor(Date.now() / 1000) + 3600) * 1000);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            sessionToken: token,
+            tokenExpiredAt,
+            lastLoginAt: new Date(),
+          },
+        });
+      } catch (dbErr) {
+        console.error("Gagal simpan sessionToken di User:", dbErr);
+      }
+
       // 5. Redirect ke aplikasi klien (SIMPEG) dengan parameter sso_token
       const targetUrl = new URL(callbackUrl);
       targetUrl.searchParams.set("sso_token", token);
