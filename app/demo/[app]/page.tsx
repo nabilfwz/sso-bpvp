@@ -452,7 +452,7 @@ function SatelliteContent() {
                     {showInspector ? "Sembunyikan Rincian Teknis Token" : "Periksa Payload Kriptografis Token SSO"}
                   </button>
                   <span className="text-[11px] text-slate-400 font-mono">
-                    Kadaluarsa: {new Date(tokenData.exp * 1000).toLocaleTimeString("id-ID")} WIB
+                    Kadaluarsa: {new Date(tokenData.exp * 1000).toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta" })} WIB
                   </span>
                 </div>
               </div>
