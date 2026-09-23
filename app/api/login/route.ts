@@ -1,33 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validatePegawaiForSso, generateSsoToken } from "@/lib/sso-core";
+import { validatePegawaiForSso, authenticatePegawaiWithPassword, generateSsoToken } from "@/lib/sso-core";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Central SSO Login Endpoint (Passwordless — Google / Sosmed SSO).
- * Memverifikasi email akun Google/Sosmed terhadap Database Pegawai BPVP.
+ * Central SSO Login Endpoint (Email + Password ATAU Passwordless).
+ * Memverifikasi kredensial terhadap Database Pegawai BPVP.
  * Menerbitkan Token SSO Cross-App (HMAC-SHA256) & mengembalikan redirect URL ke client app.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const email = (body?.email || body?.identifier)?.trim();
+    const identifier = (body?.identifier || body?.email)?.trim();
+    const password = body?.password?.trim();
     const defaultSimpegUrl =
       process.env.NEXT_PUBLIC_SIMPEG_URL || "https://simpegbpvp.vercel.app";
     const defaultCallback = `${defaultSimpegUrl}/auth/sso-callback`;
     const callbackUrl = body?.callbackUrl?.trim() || defaultCallback;
 
-    if (!email) {
+    if (!identifier) {
       return NextResponse.json(
-        { success: false, error: "Alamat email Google / Gmail wajib disertakan." },
+        { success: false, error: "Email atau NIP wajib disertakan." },
         { status: 400 }
       );
     }
 
-    // Validasi ketat terhadap database Manajemen Pegawai BPVP (tanpa password)
-    // Otomatis menolak orang luar dan pegawai nonaktif (di tong sampah)
-    const { user, pegawai } = await validatePegawaiForSso(email);
+    // Jika password disertakan, verifikasi kredensial password
+    // Jika tidak ada password (misal login token khusus), gunakan validatePegawaiForSso
+    let authResult: { user: any; pegawai?: any };
+    if (password) {
+      authResult = await authenticatePegawaiWithPassword(identifier, password);
+    } else {
+      authResult = await validatePegawaiForSso(identifier);
+    }
+    const { user, pegawai } = authResult;
 
     // Terbitkan Token SSO
     const token = generateSsoToken(user, pegawai);

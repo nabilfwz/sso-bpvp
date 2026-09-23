@@ -200,6 +200,9 @@ export async function validatePegawaiForSso(identifier: string): Promise<{
 /**
  * Autentikasi Pegawai/User SSO dengan verifikasi password.
  */
+/**
+ * Autentikasi Pegawai/User SSO dengan verifikasi password.
+ */
 export async function authenticatePegawaiWithPassword(
   identifier: string,
   password: string
@@ -211,22 +214,95 @@ export async function authenticatePegawaiWithPassword(
     throw new Error("Password wajib diisi.");
   }
 
-  // 1. Validasi pegawai via SIMPEG API
-  const { user, pegawai } = await validatePegawaiForSso(identifier);
+  const cleanId = identifier.trim();
+  const simpegBaseUrl =
+    process.env.SIMPEG_API_URL ||
+    process.env.NEXT_PUBLIC_SIMPEG_URL ||
+    "https://simpegbpvp.vercel.app";
 
-  // 2. Verifikasi password di akun User lokal SSO
-  const fullUser = await prisma.user.findUnique({
-    where: { id: user.id },
+  let simpegData: any = null;
+  let validationError = "";
+
+  // 1. Cek autentikasi & validasi password langsung ke SIMPEG API
+  try {
+    const res = await fetch(`${simpegBaseUrl}/api/sso/validate-pegawai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: cleanId, password }),
+      cache: "no-store",
+    });
+    const json = await res.json();
+    if (res.ok && json.success) {
+      simpegData = json;
+    } else {
+      validationError = json.error || "Email/NIP atau password salah.";
+    }
+  } catch (err: any) {
+    console.warn("Gagal menghubungi SIMPEG API untuk validasi password:", err?.message);
+  }
+
+  // 2. Jika validasi SIMPEG berhasil
+  if (simpegData) {
+    const employeeEmail = (
+      simpegData.pegawai?.email ||
+      simpegData.user?.email ||
+      `${cleanId}@bpvp.kemnaker.go.id`
+    ).toLowerCase().trim();
+    const employeeNama = simpegData.pegawai?.nama || simpegData.user?.nama || "Pegawai BPVP";
+    const assignedRole = simpegData.user?.role || "user";
+
+    // Sinkronkan ke tabel User di SSO lokal & perbarui password hash
+    let ssoUser = await prisma.user.findUnique({
+      where: { email: employeeEmail },
+    });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    if (ssoUser) {
+      if (!ssoUser.aktif) {
+        throw new Error(`Akses Ditolak: Akun "${employeeNama}" dinonaktifkan di server SSO.`);
+      }
+      await prisma.user.update({
+        where: { id: ssoUser.id },
+        data: {
+          password: hashedPassword,
+          nama: employeeNama,
+          role: assignedRole,
+        },
+      });
+      ssoUser.role = assignedRole;
+    } else {
+      ssoUser = await prisma.user.create({
+        data: {
+          email: employeeEmail,
+          nama: employeeNama,
+          password: hashedPassword,
+          role: assignedRole,
+          aktif: true,
+        },
+      });
+    }
+
+    return { user: ssoUser, pegawai: simpegData.pegawai };
+  }
+
+  // 3. Fallback: Cek database User lokal SSO (berguna jika SIMPEG offline atau akun lokal)
+  const cleanEmail = cleanId.toLowerCase();
+  const localUser = await prisma.user.findFirst({
+    where: { email: cleanEmail },
   });
-  if (!fullUser) {
-    throw new Error("Akun pengguna tidak ditemukan di server SSO.");
-  }
-  const isPasswordValid = await bcrypt.compare(password, fullUser.password);
-  if (!isPasswordValid) {
-    throw new Error("NIP/Email atau password salah. Silakan coba lagi.");
+
+  if (localUser) {
+    if (!localUser.aktif) {
+      throw new Error(`Akses Ditolak: Akun "${localUser.email}" dinonaktifkan di server SSO.`);
+    }
+    const isPasswordValid = await bcrypt.compare(password, localUser.password);
+    if (isPasswordValid) {
+      return { user: localUser };
+    }
   }
 
-  return { user, pegawai };
+  throw new Error(validationError || "Email/NIP atau password yang Anda masukkan salah.");
 }
 
 /**
