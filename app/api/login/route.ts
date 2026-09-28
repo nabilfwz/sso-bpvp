@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const identifier = (body?.identifier || body?.email)?.trim();
+    const identifier = (body?.identifier || body?.nik || body?.email || body?.nip)?.trim();
     const password = body?.password?.trim();
     const defaultSimpegUrl =
       process.env.NEXT_PUBLIC_SIMPEG_URL || "https://simpegbpvp.vercel.app";
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     if (!identifier) {
       return NextResponse.json(
-        { success: false, error: "Email atau NIP wajib disertakan." },
+        { success: false, error: "Email atau NIK wajib disertakan." },
         { status: 400 }
       );
     }

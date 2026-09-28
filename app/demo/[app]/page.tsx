@@ -230,7 +230,7 @@ function SatelliteContent() {
                 <div className="hidden sm:block text-right">
                   <p className="text-xs font-bold text-white leading-tight">{tokenData.nama}</p>
                   <p className="text-[10px] text-amber-300 font-medium">
-                    {tokenData.nip ? `NIP. ${tokenData.nip}` : tokenData.role.toUpperCase()}
+                    {tokenData.nip ? `NIK. ${tokenData.nip}` : tokenData.role.toUpperCase()}
                   </p>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-white/20 border border-amber-400 flex items-center justify-center font-bold text-xs text-amber-300">
@@ -359,7 +359,7 @@ function SatelliteContent() {
                     <span className="font-bold text-slate-800 text-sm">{tokenData.nama}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">NIP</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">NIK</span>
                     <span className="font-mono font-semibold text-slate-700">{tokenData.nip || "-"}</span>
                   </div>
                   <div>
@@ -507,7 +507,7 @@ function SatelliteContent() {
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                       <tr>
-                        <th className="p-3">Nama Pegawai &amp; NIP</th>
+                        <th className="p-3">Nama Pegawai &amp; NIK</th>
                         <th className="p-3">Email</th>
                         <th className="p-3">Role Lokal</th>
                         <th className="p-3">Session Token di Database</th>
@@ -654,7 +654,7 @@ function SatelliteContent() {
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
                       <tr>
-                        <th className="p-2.5">Nama &amp; NIP</th>
+                        <th className="p-2.5">Nama &amp; NIK</th>
                         <th className="p-2.5">Email</th>
                         <th className="p-2.5">Status Sesi di DB</th>
                       </tr>

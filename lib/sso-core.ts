@@ -8,6 +8,7 @@ export interface SsoTokenPayload {
   tokenId: string;
   userId: string;
   pegawaiId?: string;
+  nik: string;
   nip: string;
   nama: string;
   email: string;
@@ -235,7 +236,7 @@ export async function authenticatePegawaiWithPassword(
     if (res.ok && json.success) {
       simpegData = json;
     } else {
-      validationError = json.error || "Email/NIP atau password salah.";
+      validationError = json.error || "Email/NIK atau password salah.";
     }
   } catch (err: any) {
     console.warn("Gagal menghubungi SIMPEG API untuk validasi password:", err?.message);
@@ -302,7 +303,7 @@ export async function authenticatePegawaiWithPassword(
     }
   }
 
-  throw new Error(validationError || "Email/NIP atau password yang Anda masukkan salah.");
+  throw new Error(validationError || "Email/NIK atau password yang Anda masukkan salah.");
 }
 
 /**
@@ -319,7 +320,8 @@ export function generateSsoToken(
     tokenId: crypto.randomBytes(12).toString("hex"),
     userId: user.id,
     pegawaiId: pegawai?.id,
-    nip: pegawai?.nip || "-",
+    nik: pegawai?.nik || pegawai?.nip || "-",
+    nip: pegawai?.nik || pegawai?.nip || "-",
     nama: pegawai?.nama || user.nama,
     email: user.email,
     role: user.role,

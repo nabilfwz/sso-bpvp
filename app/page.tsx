@@ -51,7 +51,7 @@ function SsoPortalContent() {
     setFormError("");
 
     if (!identifier.trim()) {
-      setFormError("Email atau NIP wajib diisi.");
+      setFormError("Email atau NIK wajib diisi.");
       return;
     }
     if (!password) {
@@ -76,7 +76,7 @@ function SsoPortalContent() {
 
       if (!res.ok || !data.success) {
         setFormError(
-          data.error || "Gagal masuk. Periksa kembali email/NIP dan kata sandi Anda."
+          data.error || "Gagal masuk. Periksa kembali email/NIK dan kata sandi Anda."
         );
         setLoadingPassword(false);
         return;
@@ -192,11 +192,11 @@ function SsoPortalContent() {
               </div>
             )}
 
-            {/* FORM LOGIN EMAIL / NIP & PASSWORD */}
+            {/* FORM LOGIN EMAIL / NIK & PASSWORD */}
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 block">
-                  Email Kedinasan atau NIP
+                  Email Kedinasan atau NIK
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -207,7 +207,7 @@ function SsoPortalContent() {
                     required
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="nama@kemnaker.go.id atau NIP"
+                    placeholder="nama@kemnaker.go.id atau NIK"
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#003399] focus:bg-white transition"
                     disabled={loadingPassword || loadingGoogle}
                   />
